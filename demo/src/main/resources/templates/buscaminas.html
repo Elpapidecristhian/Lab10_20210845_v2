@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>El Tesoro del Muki</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f2f2f2;
+        }
+
+        h1 {
+            color: #004d99;
+        }
+
+        .coordenada-input {
+            margin: 20px;
+        }
+
+        input[type="text"] {
+            width: 120px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #004999;
+        }
+
+        .tablero {
+            display: grid;
+            grid-template-columns: repeat(6, 40px);
+            grid-gap: 4px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .celda {
+            width: 40px;
+            height: 40px;
+            background-color: #add8e6; /* Celeste */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #87ceeb;
+            font-weight: bold;
+        }
+
+        .descubierta {
+            background-color: #90ee90; /* Verde */
+        }
+
+        .bomba {
+            background-color: #ffb6c1; /* Rosado */
+        }
+
+        .mensaje {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>El Tesoro del Muki</h1>
+
+<div class="coordenada-input">
+    <label for="coordenada">Agrega la coordenada:</label>
+    <input type="text" id="coordenada" name="coordenada" placeholder="Ej: 3 2">
+    <button onclick="explotar()">Explotar</button>
+</div>
+
+<div class="tablero" id="tablero">
+</div>
+
+<div class="mensaje" id="mensaje">
+</div>
+
+<script>
+    const dimX = 6;
+    const dimY = 6;
+    let vidas = 2;
+
+    for (let i = 0; i < dimX * dimY; i++) {
+        const celda = document.createElement("div");
+        celda.className = "celda";
+        celda.id = `celda-${i}`;
+        document.getElementById("tablero").appendChild(celda);
+    }
+
+    function explotar() {
+        const coord = document.getElementById("coordenada").value.trim().split(" ");
+        const x = parseInt(coord[0]);
+        const y = parseInt(coord[1]);
+
+        fetch(`/buscaminas/explotar?x=${x}&y=${y}`, { method: "POST" })
+            .then(response => response.json())
+            .then(data => {
+                data.descubiertas.forEach(c => {
+                    const index = (c.x - 1) * 6 + (c.y - 1);
+                    const celda = document.getElementById(`celda-${index}`);
+                    if (!celda) return;
+                    celda.classList.remove("bomba", "descubierta");
+                    celda.innerText = "";
+
+                    if (c.bomba) {
+                        celda.classList.add("bomba");
+                    } else {
+                        celda.classList.add("descubierta");
+                        if (c.minasAlrededor > 0) {
+                            celda.innerText = c.minasAlrededor;
+                        }
+                    }
+                });
+
+                document.getElementById("mensaje").innerText = data.mensaje;
+                if (data.finJuego) {
+                    alert(data.mensaje);
+                    setTimeout(() => location.reload(), 2000);
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+</script>
+</body>
+</html>
